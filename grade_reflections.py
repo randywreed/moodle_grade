@@ -9,6 +9,8 @@ from nltk import word_tokenize
 import nltk, spacy, textstat
 from nltk import sent_tokenize, word_tokenize
 from nltk.tree import *
+import smtplib
+
 course='Spring_2021_rel_1010_'
 def strip_html_tags(htmlsubmissions):
     for i,hsub in enumerate(htmlsubmissions):
@@ -53,7 +55,7 @@ def gradeIt(htmlsubmissions, course_users):
             totnumwords+=len(wrdcnt)
             scnt=scnt+1
                 #print('total number of words={0}, total sentences={1}'.format(totnumwords,sentnum))
-        print('total number of words=',totnumwords)
+        #print('total number of words=',totnumwords)
         name=findUser(uid,course_users)
         grade="-"
         if totnumwords>100:
@@ -64,6 +66,20 @@ def gradeIt(htmlsubmissions, course_users):
     
     return newvars   
 
+def checkCSV(name,dflen):
+    if os.path.isfile(name):
+        pass
+    else:
+        return True
+    df=pd.read_csv(name)
+    if dflen>df.shape[0]:
+        #new records added, update csv
+        return True
+    else:
+        return False
+
+
+
 
 spacy.load('en')
 import sys
@@ -72,14 +88,23 @@ import configparser
 config=configparser.ConfigParser()
 config.read('/home/reedrw/.credentials/moodle.ini')
 moodle_key=config['DEFAULT']['moodle_key']
+
 import moodle_api
 moodle_api.URL = "https://asulearn.appstate.edu/"
 moodle_api.KEY=moodle_key
 classID=config['DEFAULT']['moodle_classID']
-print(classID)
+config.read('email.ini')
+efrom=config['DEFAULT']['from']
+to=config['DEFAULT']['to']
+appkey=config['DEFAULT']['appkey']
+#print(classID)
+server=smtplib.SMTP('smtp.gmail.com:587')
+server.starttls()
+server.login(efrom,appkey)
 course_users = moodle_api.call('core_enrol_get_enrolled_users', courseid=classID)
 assignments=moodle_api.call('mod_assign_get_assignments', courseids=[classID])
 assignment=assignments['courses']
+ostr=[]
 for a in assignment:
   #print(a)
   for ass in a['assignments']:
@@ -94,7 +119,7 @@ for a in assignment:
     ddate=datetime.fromtimestamp(ass['duedate'],tz)
     strdate=ddate.strftime('%m-%d-%Y')
     if datetime.now().strftime('%m-%d-%Y')>strdate and len(sub_submissions)>(.8*len(course_users)):
-        print('assignment {} id= {} due={} submissions={}'.format(ass['name'],ass['id'],strdate, len(sub_submissions)))
+        #print('assignment {} id= {} due={} submissions={}'.format(ass['name'],ass['id'],strdate, len(sub_submissions)))
         c=0
         for s in sub_submissions:
             uid=s['userid']
@@ -106,12 +131,19 @@ for a in assignment:
                 #print('user=',uid)
                     htmlsubmissions.append({'userid':uid, 'text':pl['editorfields'][0]['text']})
                     c=c+1
-        print(c)
+        #print(c)
         htmlsubmissions=strip_html_tags(htmlsubmissions=htmlsubmissions)
         newvars=gradeIt(htmlsubmissions=htmlsubmissions, course_users=course_users)
         mycolums=['id','name','total_words','Grade']
         df=pd.DataFrame(newvars, columns=mycolums)
         fname=assname+strdate
         output=course+fname+'grades.csv'
-        print(output)
-        df.to_csv(output, index=False)
+        #print(output)
+        if checkCSV(output,df.shape[0]):
+            df.to_csv(output, index=False)
+            ostr.append(output)
+            print('updated {}'.format(output))
+estr="Subject: files update\n\nThe following files have been updated and need to be uploaded to asulearn \n"
+for e in ostr:
+    estr+=e+"\n "
+server.sendmail(efrom,to,estr)
