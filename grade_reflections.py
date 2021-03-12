@@ -93,7 +93,7 @@ def gradeIt(htmlsubmissions, course_users, grade_type,config_type):
             else:
                 grade="No Credit"
         newvars.append([uid,name, totnumwords,grade])
-    cdf=pd.DataFrame(newvars,columns=['uid','name','total_words','grade'])
+    cdf=pd.DataFrame(newvars,columns=['id','name','total_words','Grade'])
     if grade_type>0:
         zcurdf=cdf[cdf['total_words']<50].copy()
         print('number of 0 studnets',zcurdf.shape)
@@ -141,22 +141,22 @@ def gradeIt(htmlsubmissions, course_users, grade_type,config_type):
         print('final count=',bcurdf.shape)
         #curdf
         #cdf['uid'].isin(bcurdf['uid']),'grade']=bcurdf['quantile']
-        cdf['grade']=cdf['uid'].map(bcurdf.set_index('uid')['quantile']).fillna(cdf['grade'])
+        cdf['Grade']=cdf['id'].map(bcurdf.set_index('id')['quantile']).fillna(cdf['Grade'])
         
 
     return cdf   
 
-def checkCSV(name,dflen):
+def checkCSV(name,df):
     if os.path.isfile(name):
-        pass
+        odf=pd.read_csv(name)
+        
+        if df.equals(odf):
+            return False
+        else:
+            return True
     else:
         return True
-    df=pd.read_csv(name)
-    if dflen>df.shape[0]:
-        #new records added, update csv
-        return True
-    else:
-        return False
+    
 
 
 
@@ -227,9 +227,9 @@ for a in assignment:
             zerodf=df[df['total_words']==0].copy()
             if zerodf.shape[0]>0:
                 for x,z in zerodf.iterrows():
-                    subs=list(filter(lambda uid: uid['userid']==z['uid'],sub_submissions))
+                    subs=list(filter(lambda uid: uid['userid']==z['id'],sub_submissions))
                     for s1 in subs:
-                        if s1['userid']==z['uid']:
+                        if s1['userid']==z['id']:
                             for p in s1['plugins']:
                                 if "fileareas" in p:
                                     for f in p['fileareas']:
@@ -244,7 +244,7 @@ for a in assignment:
         fname=assname+strdate
         output=course+fname+'grades.csv'
         #print(output)
-        if checkCSV(output,df.shape[0]):
+        if checkCSV(output,df):
             df.to_csv(output, index=False)
             ostr.append(output)
             print('updated {}'.format(output))
