@@ -157,7 +157,15 @@ def checkCSV(name,df):
     else:
         return True
     
-
+def smtpServerLogin(server,num_retries=3):
+    for attempt_no in range(num_retries):
+        try:
+           return server.login(efrom,appkey)
+        except smtplib.SMTPServerDisconnected as error:
+            if attempt_no<(num_retries-1):
+                print('smtp problem, retrying')
+            else:
+                raise error
 
 
 
@@ -180,7 +188,8 @@ appkey=config['DEFAULT']['appkey']
 #print(classID)
 server=smtplib.SMTP('smtp.gmail.com:587')
 server.starttls()
-server.login(efrom,appkey)
+#server.login(efrom,appkey)
+smtpServerLogin(server)
 course_users = moodle_api.call('core_enrol_get_enrolled_users', courseid=classID)
 assignments=moodle_api.call('mod_assign_get_assignments', courseids=[classID])
 assignment=assignments['courses']
