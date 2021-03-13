@@ -13,7 +13,7 @@ import smtplib
 from scipy.stats import zscore
 import statistics
 import numpy as np
-
+import en_core_web_sm
 course='Spring_2021_rel_1010_'
 
 def createZscore(df):
@@ -161,7 +161,7 @@ def checkCSV(name,df):
 
 
 
-spacy.load('en')
+spacy.load('en_core_web_sm')
 import sys
 sys.path.append("moodle_api.py")
 import configparser
