@@ -1,3 +1,4 @@
+from oauth2client.service_account import ServiceAccountCredentials
 import spacy
 import pytz
 from datetime import datetime
@@ -14,7 +15,11 @@ from scipy.stats import zscore
 import statistics
 import numpy as np
 import en_core_web_sm
-course='Spring_2021_rel_1010_'
+from pydrive2.auth import GoogleAuth
+from pydrive2.drive import GoogleDrive
+gauth=GoogleAuth()
+gauth.LoadCredentialsFile("grade_reflections_cred.txt")
+drive=GoogleDrive(gauth)
 
 def createZscore(df):
   #create z-score
@@ -185,6 +190,9 @@ config.read('email.ini')
 efrom=config['DEFAULT']['from']
 to=config['DEFAULT']['to']
 appkey=config['DEFAULT']['appkey']
+config.read('course.ini')
+course=config['DEFAULT']['course_name_prefix']
+course_folder_id=config['DEFAULT']['course_folder_id']
 #print(classID)
 server=smtplib.SMTP('smtp.gmail.com:587')
 server.starttls()
@@ -255,6 +263,9 @@ for a in assignment:
         #print(output)
         if checkCSV(output,df):
             df.to_csv(output, index=False)
+            file=drive.CreateFile({'title':output,'parents':[{'id':course_folder_id}]})
+            file.SetContentFile(output)
+            file.Upload()
             ostr.append(output)
             print('updated {}'.format(output))
 estr="Subject: files update\n\nThe following files have been updated and need to be uploaded to asulearn \n"

@@ -1,2 +1,5 @@
 *.csv
 *.ini
+*.json
+*.yaml
+grade_reflections_cred.txt
